@@ -259,11 +259,13 @@
             overflow: hidden;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
         
         .image-item:hover {
             transform: scale(1.1);
             border-color: #ff9a3c;
+            z-index: 10;
         }
         
         .image-item img {
@@ -408,6 +410,98 @@
         #currentDateDisplay, #currentTimeDisplay {
             font-size: 1.1rem;
         }
+
+        /* تنسيقات الكاميرا */
+        .camera-btn {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            margin-top: 0px;
+            margin-bottom: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            width: auto;
+        }
+        .camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        }
+        .camera-preview {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .camera-preview video, .camera-preview canvas {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+        .image-field-container {
+            position: relative;
+            margin-bottom: 5px;
+        }
+        
+        /* نافذة عرض الصورة المكبرة */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+        .close-image-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.5);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .download-image-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            background: #28a745;
+            padding: 10px 20px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -420,6 +514,30 @@
                 <button class="btn btn-secondary" onclick="closePasswordModal()">إلغاء</button>
             </div>
         </div>
+    </div>
+
+    <!-- نافذة الكاميرا المنبثقة -->
+    <div id="cameraModal" class="camera-preview">
+        <h5 class="mb-3"><i class="bi bi-camera"></i> التقاط صورة</h5>
+        <video id="cameraVideo" autoplay playsinline style="width:100%; max-height:400px;"></video>
+        <canvas id="cameraCanvas" style="display: none;"></canvas>
+        <div class="d-flex gap-2 mt-3 justify-content-center">
+            <button class="btn btn-success" onclick="captureImage()">
+                <i class="bi bi-camera"></i> التقاط صورة
+            </button>
+            <button class="btn btn-danger" onclick="closeCamera()">
+                <i class="bi bi-x-lg"></i> إغلاق
+            </button>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الصورة المكبرة -->
+    <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+        <div class="close-image-btn" onclick="closeImageModal()">✕</div>
+        <div class="download-image-btn" onclick="downloadImage()">
+            <i class="bi bi-download"></i> تحميل الصورة
+        </div>
+        <img id="modalImage" src="" alt="صورة مكبرة">
     </div>
 
     <div class="container">
@@ -483,7 +601,7 @@
                 </div>
             </div>
 
-            <!-- نموذج إضافة مرشح -->
+            <!-- نموذج إضافة مرشح مع أزرار الكاميرا -->
             <div id="addForm" style="display: none;" class="add-form mt-3">
                 <h5><i class="bi bi-person-plus"></i> إضافة مرشح جديد</h5>
                 <div class="row">
@@ -510,15 +628,30 @@
                     </div>
                     <div class="col-md-4">
                         <label>صورة 1</label>
-                        <input type="text" id="newImage1" class="admin-input" placeholder="رابط صورة 1">
+                        <div class="image-field-container">
+                            <input type="text" id="newImage1" class="admin-input" placeholder="رابط صورة 1">
+                            <button class="camera-btn" onclick="openCamera(1)" type="button">
+                                <i class="bi bi-camera"></i> 📷 كاميرا
+                            </button>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label>صورة 2</label>
-                        <input type="text" id="newImage2" class="admin-input" placeholder="رابط صورة 2">
+                        <div class="image-field-container">
+                            <input type="text" id="newImage2" class="admin-input" placeholder="رابط صورة 2">
+                            <button class="camera-btn" onclick="openCamera(2)" type="button">
+                                <i class="bi bi-camera"></i> 📷 كاميرا
+                            </button>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label>صورة 3</label>
-                        <input type="text" id="newImage3" class="admin-input" placeholder="رابط صورة 3">
+                        <div class="image-field-container">
+                            <input type="text" id="newImage3" class="admin-input" placeholder="رابط صورة 3">
+                            <button class="camera-btn" onclick="openCamera(3)" type="button">
+                                <i class="bi bi-camera"></i> 📷 كاميرا
+                            </button>
+                        </div>
                     </div>
                     <div class="col-12 mt-3">
                         <button class="save-btn" onclick="saveNewCandidate()">
@@ -673,115 +806,144 @@
         let allParticipants = [];
         let filteredParticipants = [];
         let currentSearchTerm = "";
+        
+        // متغيرات الكاميرا
+        let currentImageField = null;
+        let cameraStream = null;
+        let currentImageUrl = ""; // للصورة المكبرة
 
-        // ==================== دالة لتصحيح التاريخ بناءً على الرموز ====================
-        function fixDateBasedOnSymbols(dateString) {
+        // ==================== دوال عرض الصور المكبرة ====================
+        function openImageModal(imgSrc) {
+            currentImageUrl = imgSrc;
+            document.getElementById('modalImage').src = imgSrc;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function downloadImage() {
+            if (currentImageUrl) {
+                const link = document.createElement('a');
+                link.href = currentImageUrl;
+                link.download = 'صورة_' + new Date().getTime() + '.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // ==================== دوال الكاميرا ====================
+        function openCamera(imageNumber) {
+            currentImageField = imageNumber;
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'block';
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                // طلب الكاميرا الخلفية (environment)
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: { exact: "environment" } } 
+                })
+                .then(function(stream) {
+                    cameraStream = stream;
+                    const video = document.getElementById('cameraVideo');
+                    video.srcObject = stream;
+                    video.play();
+                })
+                .catch(function(error) {
+                    console.log('الكاميرا الخلفية غير متوفرة، نحاول الكاميرا الأمامية');
+                    // إذا فشلت الكاميرا الخلفية، نستخدم أي كاميرا متوفرة
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(function(stream) {
+                            cameraStream = stream;
+                            const video = document.getElementById('cameraVideo');
+                            video.srcObject = stream;
+                            video.play();
+                        })
+                        .catch(function(error) {
+                            alert('❌ لا يمكن الوصول إلى الكاميرا: ' + error.message);
+                            closeCamera();
+                        });
+                });
+            } else {
+                alert('❌ المتصفح لا يدعم الكاميرا');
+                closeCamera();
+            }
+        }
+
+        function captureImage() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = canvas.toDataURL('image/png');
+            
+            if (currentImageField === 1) {
+                document.getElementById('newImage1').value = imageData;
+            } else if (currentImageField === 2) {
+                document.getElementById('newImage2').value = imageData;
+            } else if (currentImageField === 3) {
+                document.getElementById('newImage3').value = imageData;
+            }
+            
+            closeCamera();
+            alert('✅ تم التقاط الصورة بنجاح');
+        }
+
+        function closeCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('cameraModal').style.display = 'none';
+            currentImageField = null;
+        }
+
+        // ==================== دوال التاريخ المعدلة (عرض +1 يوم) ====================
+        
+        // دالة لعرض التاريخ مع إضافة يوم واحد
+        function extractCorrectDate(dateString) {
             if (!dateString) return '';
             
-            console.log("📅 التاريخ الأصلي:", dateString);
+            // استخراج الأرقام من التاريخ
+            const numbers = dateString.toString().match(/\d+/g);
+            if (!numbers || numbers.length < 3) return dateString;
             
-            // إذا كان التاريخ يحتوي على حرف T (يعني من API)
-            if (dateString.includes('T')) {
-                // استخراج الأرقام
-                const numbers = dateString.match(/\d+/g);
-                if (numbers && numbers.length >= 3) {
-                    let year = numbers[0];
-                    let month = numbers[1].padStart(2, '0');
-                    let day = numbers[2].padStart(2, '0');
-                    
-                    console.log(`🔢 أرقام من API: ${year}/${month}/${day}`);
-                    
-                    // نزيد يوم واحد للتواريخ الي تجي من API
-                    let newDay = parseInt(day) + 1;
-                    let newMonth = parseInt(month);
-                    let newYear = parseInt(year);
-                    
-                    // التحقق من نهاية الشهر
-                    const daysInMonth = new Date(newYear, newMonth, 0).getDate();
-                    if (newDay > daysInMonth) {
-                        newDay = 1;
-                        newMonth++;
-                        if (newMonth > 12) {
-                            newMonth = 1;
-                            newYear++;
-                        }
-                    }
-                    
-                    const result = `${newYear}/${newMonth.toString().padStart(2, '0')}/${newDay.toString().padStart(2, '0')}`;
-                    console.log(`✅ بعد التصحيح: ${result}`);
-                    return result;
-                }
-            }
+            let year, month, day;
             
-            // إذا كان التاريخ بصيغة YYYY/MM/DD
-            const match = dateString.match(/(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
-            if (match) {
-                let year = match[1];
-                let month = match[2].padStart(2, '0');
-                let day = match[3].padStart(2, '0');
-                
-                console.log(`🔢 أرقام عادية: ${year}/${month}/${day}`);
-                
-                // إذا كان اليوم أقل من 19 (يعتقد أنه ناقص)
-                if (parseInt(day) < 25) { // نطبق التصحيح على كل التواريخ الصغيرة
-                    // نزيد يوم واحد
-                    let newDay = parseInt(day) + 1;
-                    let newMonth = parseInt(month);
-                    let newYear = parseInt(year);
-                    
-                    // التحقق من نهاية الشهر
-                    const daysInMonth = new Date(newYear, newMonth, 0).getDate();
-                    if (newDay > daysInMonth) {
-                        newDay = 1;
-                        newMonth++;
-                        if (newMonth > 12) {
-                            newMonth = 1;
-                            newYear++;
-                        }
-                    }
-                    
-                    const result = `${newYear}/${newMonth.toString().padStart(2, '0')}/${newDay.toString().padStart(2, '0')}`;
-                    console.log(`✅ بعد التصحيح: ${result}`);
-                    return result;
-                }
-                
-                return `${year}/${month}/${day}`;
-            }
-            
-            return dateString;
-        }
-
-        // ==================== دالة لاستخراج التاريخ الصحيح للعرض ====================
-        function extractCorrectDate(dateString) {
-            return fixDateBasedOnSymbols(dateString);
-        }
-
-        // ==================== الإدارة - كلمات مرور متعددة ====================
-        function openPasswordModal() {
-            document.getElementById('passwordModal').style.display = 'flex';
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').style.display = 'none';
-            document.getElementById('adminPassword').value = '';
-        }
-
-        function checkPassword() {
-            const password = document.getElementById('adminPassword').value;
-            
-            // ✅ قائمة كلمات المرور المسموح بها (أضف ما تشاء)
-            const validPasswords = ['admin', 'ubnt', '1234', 'manager', 'supervisor'];
-            
-            if (validPasswords.includes(password)) {
-                closePasswordModal();
-                document.getElementById('adminPanel').style.display = 'block';
-                showAllCandidates();
+            // تحديد الصيغة
+            if (numbers[0].length === 4) {
+                // YYYY/MM/DD
+                year = parseInt(numbers[0]);
+                month = parseInt(numbers[1]);
+                day = parseInt(numbers[2]);
             } else {
-                alert('❌ كلمة المرور غير صحيحة');
+                // DD/MM/YYYY
+                day = parseInt(numbers[0]);
+                month = parseInt(numbers[1]);
+                year = parseInt(numbers[2]);
+                if (year < 100) year = 2000 + year;
             }
+            
+            // إنشاء تاريخ مع إضافة يوم واحد
+            const date = new Date(year, month - 1, day);
+            date.setDate(date.getDate() + 1); // +1 يوم عند العرض فقط
+            
+            // إرجاع التاريخ بصيغة YYYY/MM/DD
+            const newYear = date.getFullYear();
+            const newMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+            const newDay = date.getDate().toString().padStart(2, '0');
+            
+            return `${newYear}/${newMonth}/${newDay}`;
         }
 
-        // ==================== دوال التاريخ المصححة ====================
+        // دالة لتحويل التاريخ مع إضافة يوم (للمقارنة)
         function parseDate(dateString) {
             if (!dateString || dateString === '') return null;
             
@@ -791,24 +953,26 @@
             const numbers = cleanDate.match(/\d+/g);
             if (!numbers || numbers.length < 3) return null;
             
-            // الصيغة في الشيت: YYYY/MM/DD
-            let year = parseInt(numbers[0]);
-            let month = parseInt(numbers[1]);
-            let day = parseInt(numbers[2]);
+            let year, month, day;
             
-            // تصحيح السنة
-            if (year < 100) year = 2000 + year;
-            
-            // ✅ تصحيح نهائي: نزيد يوم واحد فقط للتواريخ من API
-            if (cleanDate.includes('T') && cleanDate.includes('Z')) {
-                // نزيد يوم واحد فقط (ثابت)
-                const correctedDate = new Date(year, month - 1, day, 12, 0, 0);
-                correctedDate.setDate(correctedDate.getDate() + 1); // إضافة يوم ثابت
-                return correctedDate;
+            if (numbers[0].length === 4) {
+                // YYYY/MM/DD
+                year = parseInt(numbers[0]);
+                month = parseInt(numbers[1]);
+                day = parseInt(numbers[2]);
+            } else {
+                // DD/MM/YYYY
+                day = parseInt(numbers[0]);
+                month = parseInt(numbers[1]);
+                year = parseInt(numbers[2]);
+                if (year < 100) year = 2000 + year;
             }
             
-            // للتواريخ العادية بدون T و Z
-            return new Date(year, month - 1, day, 12, 0, 0);
+            // إضافة يوم واحد للتصحيح
+            const correctedDate = new Date(year, month - 1, day, 12, 0, 0);
+            correctedDate.setDate(correctedDate.getDate() + 1);
+            
+            return correctedDate;
         }
 
         function isCourseTomorrow(dateString) {
@@ -837,6 +1001,27 @@
             return courseDate.getDate() === yesterday.getDate() &&
                    courseDate.getMonth() === yesterday.getMonth() &&
                    courseDate.getFullYear() === yesterday.getFullYear();
+        }
+
+        // ==================== الإدارة ====================
+        function openPasswordModal() {
+            document.getElementById('passwordModal').style.display = 'flex';
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            document.getElementById('adminPassword').value = '';
+        }
+
+        function checkPassword() {
+            const password = document.getElementById('adminPassword').value;
+            if (password === 'admin') {
+                closePasswordModal();
+                document.getElementById('adminPanel').style.display = 'block';
+                showAllCandidates();
+            } else {
+                alert('❌ كلمة المرور غير صحيحة');
+            }
         }
 
         // ==================== تحميل البيانات ====================
@@ -1149,7 +1334,7 @@
             document.getElementById('resultsCount').textContent = filtered.length;
         }
 
-        // ==================== عرض نتائج البحث ====================
+        // ==================== عرض نتائج البحث مع إمكانية فتح الصور ====================
         function displayResults(participants) {
             const container = document.getElementById('participantsContainer');
             
@@ -1192,7 +1377,7 @@
 
         function displayImage(img) {
             if (img && img.trim() !== '') {
-                return `<div class="image-item" onclick="window.open('${img}', '_blank')">
+                return `<div class="image-item" onclick="openImageModal('${img}')">
                     <img src="${img}" onerror="this.parentElement.innerHTML='<div class=\\'no-image-box\\'><i class=\\'bi bi-image\\'></i></div>'">
                 </div>`;
             }
@@ -1267,6 +1452,13 @@
             });
             
             setupPrinting();
+            
+            // إغلاق نافذة الصورة عند الضغط على ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeImageModal();
+                }
+            });
         });
     </script>
 </body>
