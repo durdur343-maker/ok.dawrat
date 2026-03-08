@@ -1711,7 +1711,7 @@
             document.getElementById('resultsCount').textContent = filtered.length;
         }
 
-        // ==================== عرض نتائج البحث مع إمكانية فتح الصور ====================
+        // ==================== عرض نتائج البحث مع إمكانية فتح الصور وتحويل روابط جوجل درايف ====================
         function displayResults(participants) {
             const container = document.getElementById('participantsContainer');
             
@@ -1752,10 +1752,37 @@
             container.innerHTML = html;
         }
 
+        // دالة عرض الصور مع دعم روابط جوجل درايف
         function displayImage(img) {
             if (img && img.trim() !== '') {
-                return `<div class="image-item" onclick="openImageModal('${img}')">
-                    <img src="${img}" onerror="this.parentElement.innerHTML='<div class=\\'no-image-box\\'><i class=\\'bi bi-image\\'></i></div>'">
+                let imageUrl = img.trim();
+                
+                // تحويل روابط جوجل درايف تلقائياً
+                // للروابط بصيغة /file/d/XXX/view
+                const driveMatch1 = imageUrl.match(/\/d\/(.+?)\/view/);
+                // للروابط بصيغة id=XXX
+                const driveMatch2 = imageUrl.match(/[?&]id=([^&]+)/);
+                // للروابط بصيغة /d/XXX مباشرة
+                const driveMatch3 = imageUrl.match(/\/d\/(.+?)(\/|$)/);
+                // للروابط بصيغة uc?id=XXX
+                const driveMatch4 = imageUrl.match(/uc\?id=([^&]+)/);
+                
+                if (driveMatch1) {
+                    // رابط بصيغة /file/d/XXX/view
+                    imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch1[1]}&sz=w1000`;
+                } else if (driveMatch2) {
+                    // رابط بصيغة ?id=XXX
+                    imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch2[1]}&sz=w1000`;
+                } else if (driveMatch3) {
+                    // رابط بصيغة /d/XXX
+                    imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch3[1]}&sz=w1000`;
+                } else if (driveMatch4) {
+                    // رابط بصيغة uc?id=XXX
+                    imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch4[1]}&sz=w1000`;
+                }
+                
+                return `<div class="image-item" onclick="openImageModal('${imageUrl}')">
+                    <img src="${imageUrl}" onerror="this.parentElement.innerHTML='<div class=\\'no-image-box\\'><i class=\\'bi bi-image\\'></i> الرابط معطل</div>'">
                 </div>`;
             }
             return `<div class="no-image-box"><i class="bi bi-image"></i></div>`;
