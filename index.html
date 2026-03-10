@@ -997,6 +997,35 @@
             }
         }
 
+        // ==================== دالة ضغط الصور ====================
+        function compressImage(dataUrl, maxWidth = 400, quality = 0.6) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = dataUrl;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // تصغير الأبعاد إذا كانت كبيرة
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // ضغط الجودة
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(compressedDataUrl);
+                };
+            });
+        }
+
         // ==================== دوال الكاميرا ====================
         function openCamera(imageNumber) {
             currentImageField = imageNumber;
@@ -1035,7 +1064,7 @@
             }
         }
 
-        function captureImage() {
+        async function captureImage() {
             const video = document.getElementById('cameraVideo');
             const canvas = document.getElementById('cameraCanvas');
             const context = canvas.getContext('2d');
@@ -1045,28 +1074,32 @@
             
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            const imageData = canvas.toDataURL('image/png');
+            // الحصول على الصورة كـ Data URL
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // ضغط الصورة
+            const compressedImage = await compressImage(imageData, 400, 0.6);
             
             if (currentImageField) {
                 if (currentImageField.toString().startsWith('edit')) {
                     // للتعديل
                     const num = currentImageField.toString().replace('edit', '');
-                    document.getElementById('editImage' + num).value = imageData;
+                    document.getElementById('editImage' + num).value = compressedImage;
                     displayPreview('editImage' + num, 'previewImage' + num);
                 } else {
                     // للإضافة الجديدة
                     if (currentImageField === 1) {
-                        document.getElementById('newImage1').value = imageData;
+                        document.getElementById('newImage1').value = compressedImage;
                     } else if (currentImageField === 2) {
-                        document.getElementById('newImage2').value = imageData;
+                        document.getElementById('newImage2').value = compressedImage;
                     } else if (currentImageField === 3) {
-                        document.getElementById('newImage3').value = imageData;
+                        document.getElementById('newImage3').value = compressedImage;
                     }
                 }
             }
             
             closeCamera();
-            alert('✅ تم التقاط الصورة بنجاح');
+            alert('✅ تم التقاط الصورة وضغطها بنجاح');
         }
 
         function closeCamera() {
@@ -1079,36 +1112,36 @@
         }
 
         // ==================== دوال الاستوديو (معرض الصور) ====================
-        function openGallery(imageNumber) {
-            // إنشاء input file مخفي
+        async function openGallery(imageNumber) {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
             fileInput.style.display = 'none';
             document.body.appendChild(fileInput);
             
-            // عند اختيار صورة
-            fileInput.onchange = function(e) {
+            fileInput.onchange = async function(e) {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(event) {
-                        // حفظ الصورة في حقل الإدخال المناسب
+                    reader.onload = async function(event) {
+                        // ضغط الصورة
+                        const compressedImage = await compressImage(event.target.result, 400, 0.6);
+                        
                         if (imageNumber === 1) {
-                            document.getElementById('newImage1').value = event.target.result;
+                            document.getElementById('newImage1').value = compressedImage;
                         } else if (imageNumber === 2) {
-                            document.getElementById('newImage2').value = event.target.result;
+                            document.getElementById('newImage2').value = compressedImage;
                         } else if (imageNumber === 3) {
-                            document.getElementById('newImage3').value = event.target.result;
+                            document.getElementById('newImage3').value = compressedImage;
                         }
-                        alert('✅ تم اختيار الصورة بنجاح');
+                        
+                        alert('✅ تم اختيار الصورة وضغطها بنجاح');
                     };
                     reader.readAsDataURL(file);
                 }
                 document.body.removeChild(fileInput);
             };
             
-            // فتح نافذة اختيار الملفات
             fileInput.click();
         }
 
@@ -1221,7 +1254,7 @@
         }
 
         // دوال الكاميرا والاستوديو للتعديل
-        function openEditCamera(imageNumber) {
+        async function openEditCamera(imageNumber) {
             currentImageField = 'edit' + imageNumber;
             const modal = document.getElementById('cameraModal');
             modal.style.display = 'block';
@@ -1255,21 +1288,22 @@
             }
         }
 
-        function openEditGallery(imageNumber) {
+        async function openEditGallery(imageNumber) {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
             fileInput.style.display = 'none';
             document.body.appendChild(fileInput);
             
-            fileInput.onchange = function(e) {
+            fileInput.onchange = async function(e) {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(event) {
-                        document.getElementById('editImage' + imageNumber).value = event.target.result;
+                    reader.onload = async function(event) {
+                        const compressedImage = await compressImage(event.target.result, 400, 0.6);
+                        document.getElementById('editImage' + imageNumber).value = compressedImage;
                         displayPreview('editImage' + imageNumber, 'previewImage' + imageNumber);
-                        alert('✅ تم اختيار الصورة بنجاح');
+                        alert('✅ تم اختيار الصورة وضغطها بنجاح');
                     };
                     reader.readAsDataURL(file);
                 }
@@ -1758,26 +1792,18 @@
                 let imageUrl = img.trim();
                 
                 // تحويل روابط جوجل درايف تلقائياً
-                // للروابط بصيغة /file/d/XXX/view
                 const driveMatch1 = imageUrl.match(/\/d\/(.+?)\/view/);
-                // للروابط بصيغة id=XXX
                 const driveMatch2 = imageUrl.match(/[?&]id=([^&]+)/);
-                // للروابط بصيغة /d/XXX مباشرة
                 const driveMatch3 = imageUrl.match(/\/d\/(.+?)(\/|$)/);
-                // للروابط بصيغة uc?id=XXX
                 const driveMatch4 = imageUrl.match(/uc\?id=([^&]+)/);
                 
                 if (driveMatch1) {
-                    // رابط بصيغة /file/d/XXX/view
                     imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch1[1]}&sz=w1000`;
                 } else if (driveMatch2) {
-                    // رابط بصيغة ?id=XXX
                     imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch2[1]}&sz=w1000`;
                 } else if (driveMatch3) {
-                    // رابط بصيغة /d/XXX
                     imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch3[1]}&sz=w1000`;
                 } else if (driveMatch4) {
-                    // رابط بصيغة uc?id=XXX
                     imageUrl = `https://drive.google.com/thumbnail?id=${driveMatch4[1]}&sz=w1000`;
                 }
                 
